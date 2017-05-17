@@ -175,32 +175,15 @@ function boxMove(board, direction, oldHash){
 	return newHash
 }
 
-function calculateHash(board){
-	var hash = 0;
-	for (var i = 0; i < board.length; i++) {
-		if(isColor(board[i], blockColor.box)){
-			hash = hash ^ blockHash[i];
-		}
-	}
-	return hash
-}
-
-function hashInArray(hash){
-	for (var i = 0; i < visitedHash.length; i++) {
-		if(visitedHash[i] == hash) return true;
-	}
-	return false;
-}
-
 var actions = ["left", "up", "right", "down"]
 function iterDFS(deep, board, actionLog, boardHash){
 	if(isGameover(board)) return true;
 	if(deep <= 0) return false;
-	// if(hashInArray(boardHash)){
-	// 	return false;
-	// }
+	if(hashInTable(boardHash, deep)){
+		return false;
+	}
 
-	visitedHash.push(boardHash);
+	updateHashTable(boardHash);
 	for(var i = 0; i < actions.length; i++){
 		var newBoard = board.slice();
 		var newActionLog = actionLog.slice();
@@ -220,7 +203,6 @@ $("#solute").click(function(){
 	var boardHash = calculateHash(currentBoard);
 	for(var i = 1; i < 20; i++){
 		var actionLog = [];
-		visitedHash = [];
 		var result = iterDFS(i, currentBoard, actionLog, boardHash);
 		console.log("Deep: " + i)
 		if(result){
@@ -233,8 +215,38 @@ $("#solute").click(function(){
 
 })
 
-var visitedHash = [];
+function calculateHash(board){
+	var hash = 0;
+	for (var i = 0; i < board.length; i++) {
+		if(isColor(board[i], blockColor.box)){
+			hash = hash ^ blockHash[i];
+		}
+	}
+	return hash
+}
+
+function hashInTable(hash, deep){
+	var index = hashToIndex(hash)
+	if(visitedHash[index] == undefined) return false;
+	if(visitedHash.deep >= deep && visitedHash.key == hash&keyMask) return true;
+	return false;	
+}
+
+function updateHashTable(hash, deep){
+	var index = hashToIndex(hash)
+	var record = {
+		key: hash & keyMask,
+		deep: deep
+	}
+	visitedHash[index] = record;
+}
+
+function hashToIndex(hash){
+	return hash >> (48-25)
+}
+keyMask = 33554432-1;
+var visitedHash = []; //2^25
 var blockHash = [];
 for(var i = 0; i < 64; i++){
-	blockHash.push(Math.floor(Math.random()*Math.pow(2, 28)));
+	blockHash.push(Math.floor(Math.random()*Math.pow(2, 48)));
 }
