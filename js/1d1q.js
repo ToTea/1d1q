@@ -80,9 +80,9 @@ function refreshScreen(){
 	}
 }
 
-function isGameover(){
+function isGameover(board){
 	for (var i = 0; i < targetPosition.length; i++) {
-		if(!isColor(currentBoard[targetPosition[i]], blockColor.box)){
+		if(!isColor(board[targetPosition[i]], blockColor.box)){
 			return false;
 		}
 	}
@@ -104,7 +104,7 @@ $("body").keydown(function(e){
 	}
 	if(key == 37 || key == 38 || key == 39 || key == 40){
 		$("#step").text($("#step").text()/1+1);
-		if(isGameover()){
+		if(isGameover(currentBoard)){
 			$("#clear").show()
 		}
 	}
@@ -112,21 +112,23 @@ $("body").keydown(function(e){
 
 })
 
-function setColor(idx, color){
-	currentBoard[idx] = color;
+function setColor(board, idx, color){
+	board[idx] = color;
 }
 function isColor(color1, color2){
 	return color1 == color2;
 }
 
-function boxMove(board, direction){
+function boxMove(board, direction, oldHash){
+	newHash = oldHash
 	if(direction == "left"){
 		for (var y = 0; y < 8; y++) {
 			for (var x = 1; x < 8; x++){
 				if(isColor(board[8*y + x], blockColor.box)){
 					if(isColor(board[8*y + x-1], blockColor.no) || isColor(board[8*y + x-1], blockColor.target)){
-						setColor(8*y + x, blockColor.no);
-						setColor((x-1)+8*y, blockColor.box);
+						setColor(board, 8*y + x, blockColor.no);
+						setColor(board, (x-1)+8*y, blockColor.box);
+						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[(x-1)+8*y]
 					}
 				}
 			}
@@ -136,8 +138,9 @@ function boxMove(board, direction){
 			for (var y = 1; y < 8; y++){
 				if(isColor(board[8*y + x], blockColor.box)){
 					if(isColor(board[8*(y-1) + x], blockColor.no) || isColor(board[8*(y-1) + x], blockColor.target)){
-						setColor(8*y + x, blockColor.no);
-						setColor(x+8*(y-1), blockColor.box);
+						setColor(board, 8*y + x, blockColor.no);
+						setColor(board, x+8*(y-1), blockColor.box);
+						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[x+8*(y-1)]
 					}
 				}
 			}
@@ -148,8 +151,9 @@ function boxMove(board, direction){
 			for (var x = 6; x >= 0; x--){
 				if(isColor(board[8*y + x], blockColor.box)){
 					if(isColor(board[8*y + x+1], blockColor.no) || isColor(board[8*y + x+1], blockColor.target)){
-						setColor(8*y + x, blockColor.no);
-						setColor((x+1)+8*y, blockColor.box);
+						setColor(board, 8*y + x, blockColor.no);
+						setColor(board, (x+1)+8*y, blockColor.box);
+						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[(x+1)+8*y]
 					}
 				}
 			}
@@ -160,20 +164,77 @@ function boxMove(board, direction){
 			for (var y = 6; y >= 0; y--){
 				if(isColor(board[8*y + x], blockColor.box)){
 					if(isColor(board[8*(y+1) + x], blockColor.no) || isColor(board[8*(y+1) + x], blockColor.target)){
-						setColor(8*y + x, blockColor.no);
-						setColor(x+8*(y+1), blockColor.box);			
+						setColor(board, 8*y + x, blockColor.no);
+						setColor(board, x+8*(y+1), blockColor.box);
+						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[x+8*(y+1)]
 					}
 				}
 			}
 		}	
 	}
+	return newHash
 }
 
-// var actions = ["left", "up", "right", "down"]
-// function iterDFS(deep, board){
-// 	var oldBoard = board.slice();
-// 	for(var i = 0; i < actions.length; i++){
-// 		boxMove()
-// 	}
+function calculateHash(board){
+	var hash = 0;
+	for (var i = 0; i < board.length; i++) {
+		if(isColor(board[i], blockColor.box)){
+			hash = hash ^ blockHash[i];
+		}
+	}
+	return hash
+}
 
-// }
+function hashInArray(hash){
+	for (var i = 0; i < visitedHash.length; i++) {
+		if(visitedHash[i] == hash) return true;
+	}
+	return false;
+}
+
+var actions = ["left", "up", "right", "down"]
+function iterDFS(deep, board, actionLog, boardHash){
+	if(isGameover(board)) return true;
+	if(deep <= 0) return false;
+	// if(hashInArray(boardHash)){
+	// 	return false;
+	// }
+
+	visitedHash.push(boardHash);
+	for(var i = 0; i < actions.length; i++){
+		var newBoard = board.slice();
+		var newActionLog = actionLog.slice();
+		newBoardHash = boxMove(newBoard, actions[i]);
+		newActionLog.push(actions[i]);
+		if(iterDFS(deep-1, newBoard, newActionLog, newBoardHash)){
+			for(var j = 0; j < newActionLog.length; j++){
+				actionLog[j] = newActionLog[j];
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+$("#solute").click(function(){
+	var boardHash = calculateHash(currentBoard);
+	for(var i = 1; i < 20; i++){
+		var actionLog = [];
+		visitedHash = [];
+		var result = iterDFS(i, currentBoard, actionLog, boardHash);
+		console.log("Deep: " + i)
+		if(result){
+			console.log("Solution found.");
+			console.log(actionLog);
+			break;
+		}
+	}
+
+
+})
+
+var visitedHash = [];
+var blockHash = [];
+for(var i = 0; i < 64; i++){
+	blockHash.push(Math.floor(Math.random()*Math.pow(2, 28)));
+}
