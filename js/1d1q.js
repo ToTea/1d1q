@@ -125,10 +125,10 @@ function boxMove(board, direction, oldHash){
 		for (var y = 0; y < 8; y++) {
 			for (var x = 1; x < 8; x++){
 				if(isColor(board[8*y + x], blockColor.box)){
-					if(isColor(board[8*y + x-1], blockColor.no) || isColor(board[8*y + x-1], blockColor.target)){
+					if(isColor(board[8*y + x-1], blockColor.no)){
 						setColor(board, 8*y + x, blockColor.no);
 						setColor(board, (x-1)+8*y, blockColor.box);
-						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[(x-1)+8*y]
+						// newHash = newHash ^ blockHash[8*y + x] ^ blockHash[(x-1)+8*y]
 					}
 				}
 			}
@@ -137,10 +137,10 @@ function boxMove(board, direction, oldHash){
 		for (var x = 0; x < 8; x++) {
 			for (var y = 1; y < 8; y++){
 				if(isColor(board[8*y + x], blockColor.box)){
-					if(isColor(board[8*(y-1) + x], blockColor.no) || isColor(board[8*(y-1) + x], blockColor.target)){
+					if(isColor(board[8*(y-1) + x], blockColor.no)){
 						setColor(board, 8*y + x, blockColor.no);
 						setColor(board, x+8*(y-1), blockColor.box);
-						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[x+8*(y-1)]
+						// newHash = newHash ^ blockHash[8*y + x] ^ blockHash[x+8*(y-1)]
 					}
 				}
 			}
@@ -150,10 +150,10 @@ function boxMove(board, direction, oldHash){
 		for (var y = 0; y < 8; y++) {
 			for (var x = 6; x >= 0; x--){
 				if(isColor(board[8*y + x], blockColor.box)){
-					if(isColor(board[8*y + x+1], blockColor.no) || isColor(board[8*y + x+1], blockColor.target)){
+					if(isColor(board[8*y + x+1], blockColor.no)){
 						setColor(board, 8*y + x, blockColor.no);
 						setColor(board, (x+1)+8*y, blockColor.box);
-						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[(x+1)+8*y]
+						// newHash = newHash ^ blockHash[8*y + x] ^ blockHash[(x+1)+8*y]
 					}
 				}
 			}
@@ -163,10 +163,10 @@ function boxMove(board, direction, oldHash){
 		for (var x = 0; x < 8; x++) {
 			for (var y = 6; y >= 0; y--){
 				if(isColor(board[8*y + x], blockColor.box)){
-					if(isColor(board[8*(y+1) + x], blockColor.no) || isColor(board[8*(y+1) + x], blockColor.target)){
+					if(isColor(board[8*(y+1) + x], blockColor.no)){
 						setColor(board, 8*y + x, blockColor.no);
 						setColor(board, x+8*(y+1), blockColor.box);
-						newHash = newHash ^ blockHash[8*y + x] ^ blockHash[x+8*(y+1)]
+						// newHash = newHash ^ blockHash[8*y + x] ^ blockHash[x+8*(y+1)]
 					}
 				}
 			}
@@ -183,7 +183,30 @@ function iterDFS(deep, board, actionLog, boardHash){
 		return false;
 	}
 
-	updateHashTable(boardHash);
+	updateHashTable(boardHash, deep);
+	for(var i = 0; i < actions.length; i++){
+		var newBoard = board.slice();
+		var newActionLog = actionLog.slice();
+		boxMove(newBoard, actions[i]);
+		newBoardHash = calculateHash(newBoard)
+		newActionLog.push(actions[i]);
+		if(iterDFS(deep-1, newBoard, newActionLog, newBoardHash)){
+			for(var j = 0; j < newActionLog.length; j++){
+				actionLog[j] = newActionLog[j];
+			}
+			return true;
+		}
+	}
+	return false;
+}
+function dfsThreshold(threshold, board, step, actionLog, boardHash){
+	if(isGameover(board)) return true;
+	if(step + evaluation(board) > threshold) return false;
+	if(idaHashInTable(boardHash)){
+		return false;
+	}
+
+	updateHashTable(boardHash, deep);
 	for(var i = 0; i < actions.length; i++){
 		var newBoard = board.slice();
 		var newActionLog = actionLog.slice();
@@ -198,8 +221,36 @@ function iterDFS(deep, board, actionLog, boardHash){
 	}
 	return false;
 }
+function evaluation(board){
+	var maxMinD = 0
+	for (var i = 0; i < board.length; i++) {
+		if(isColor(board[i], blockColor.box)){
+			boxX = i % 8;
+			boxY = Math.floor(i / 8);
+			var minD = 999
+			for (var j = 0; j < targetPosition.length; j++) {
+				targetX = targetPosition[j] % 8;
+				targetY = Math.floor(targetPosition[j] / 8);
+				distance = Math.abs(targetX - boxX) + Math.abs(targetY - boxY);
+				if(distance < minD){
+					minD = distance
+				}
+			}
+			if(minD > maxMinD){
+				maxMinD = minD
+			}
+		}
+	}
+	return maxMinD;
+}
+
 
 $("#solute").click(function(){
+	dfidSolution()
+	// idaSolution()
+})
+
+function dfidSolution(){
 	var boardHash = calculateHash(currentBoard);
 	for(var i = 1; i < 20; i++){
 		var actionLog = [];
@@ -211,9 +262,11 @@ $("#solute").click(function(){
 			break;
 		}
 	}
+}
 
+function idaSolution(){
 
-})
+}
 
 function calculateHash(board){
 	var hash = 0;
@@ -228,7 +281,13 @@ function calculateHash(board){
 function hashInTable(hash, deep){
 	var index = hashToIndex(hash)
 	if(visitedHash[index] == undefined) return false;
-	if(visitedHash.deep >= deep && visitedHash.key == hash&keyMask) return true;
+	if(visitedHash[index].deep >= deep && visitedHash[index].key == (hash&keyMask))return true;
+	return false;	
+}
+function idaHashInTable(hash){
+	var index = hashToIndex(hash)
+	if(visitedHash[index] == undefined) return false;
+	if(visitedHash[index] == hash&keyMask) return true;
 	return false;	
 }
 
@@ -239,6 +298,12 @@ function updateHashTable(hash, deep){
 		deep: deep
 	}
 	visitedHash[index] = record;
+}
+
+function idaUpdateHashTable(hash){
+	var index = hashToIndex(hash);
+	var key = hash & keyMask;
+	visitedHash[index] = key;
 }
 
 function hashToIndex(hash){
