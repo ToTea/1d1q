@@ -1,3 +1,4 @@
+$("#clear").hide()
 var blockColor = {
 	no: "rgb(200, 200, 200)",
 	wall: "rgb(0, 0, 0)",
@@ -43,6 +44,7 @@ $("td").click(function() {
 
 $("#new").click(function(){
 	$("#step").text(0);
+	$("#bestMove").text("");
 	$("#blockPanel").show()
 	$("#clear").hide()
 	$("td").css("background-color", blockColor.no);
@@ -177,11 +179,11 @@ function boxMove(board, direction, oldHash){
 
 var actions = ["left", "up", "right", "down"]
 function iterDFS(deep, board, actionLog, boardHash){
-	if(isGameover(board)) return true;
-	if(deep <= 0) return false;
 	if(hashInTable(boardHash, deep)){
 		return false;
 	}
+	if(isGameover(board)) return true;
+	if(deep <= 0) return false;
 
 	updateHashTable(boardHash, deep);
 	for(var i = 0; i < actions.length; i++){
@@ -199,20 +201,25 @@ function iterDFS(deep, board, actionLog, boardHash){
 	}
 	return false;
 }
-function dfsThreshold(threshold, board, step, actionLog, boardHash){
+function dfsThreshold(threshold, board, step, actionLog, boardHash, minCut){
+	if(hashInTable(boardHash, threshold-step)){
+		return false;
+	}
 	if(isGameover(board)) return true;
-	if(step + evaluation(board) > threshold) return false;
-	if(idaHashInTable(boardHash)){
+	var cost = step + evaluation(board);
+	if(cost > threshold){
+		if(cost < minCut[0]) minCut[0] = cost;
 		return false;
 	}
 
-	updateHashTable(boardHash, deep);
+	updateHashTable(boardHash, threshold-step);
 	for(var i = 0; i < actions.length; i++){
 		var newBoard = board.slice();
 		var newActionLog = actionLog.slice();
 		newBoardHash = boxMove(newBoard, actions[i]);
+		newBoardHash = calculateHash(newBoard)
 		newActionLog.push(actions[i]);
-		if(iterDFS(deep-1, newBoard, newActionLog, newBoardHash)){
+		if(dfsThreshold(threshold, newBoard, step+1, newActionLog, newBoardHash, minCut)){
 			for(var j = 0; j < newActionLog.length; j++){
 				actionLog[j] = newActionLog[j];
 			}
@@ -246,16 +253,16 @@ function evaluation(board){
 
 
 $("#solute").click(function(){
-	dfidSolution()
-	// idaSolution()
+	// dfidSolution()
+	idaSolution()
 })
 
 function dfidSolution(){
 	var boardHash = calculateHash(currentBoard);
 	for(var i = 1; i < 20; i++){
 		var actionLog = [];
-		var result = iterDFS(i, currentBoard, actionLog, boardHash);
 		console.log("Deep: " + i)
+		var result = iterDFS(i, currentBoard, actionLog, boardHash);
 		if(result){
 			console.log("Solution found.");
 			console.log(actionLog);
@@ -265,7 +272,21 @@ function dfidSolution(){
 }
 
 function idaSolution(){
-
+	var boardHash = calculateHash(currentBoard);
+	var threshold = 1;
+	while(true){
+		var actionLog = [];
+		var minCut = [99999];
+		$("#bestMove").text("Threshold: " + threshold);
+		var result = dfsThreshold(threshold, currentBoard, 0, actionLog, boardHash, minCut);
+		threshold = minCut[0];
+		if(result){
+			console.log("Solution found.");
+			console.log(actionLog);
+			break;
+		}
+	}
+	$("#bestMove").text("Best move: " + actionLog);
 }
 
 function calculateHash(board){
@@ -284,12 +305,6 @@ function hashInTable(hash, deep){
 	if(visitedHash[index].deep >= deep && visitedHash[index].key == (hash&keyMask))return true;
 	return false;	
 }
-function idaHashInTable(hash){
-	var index = hashToIndex(hash)
-	if(visitedHash[index] == undefined) return false;
-	if(visitedHash[index] == hash&keyMask) return true;
-	return false;	
-}
 
 function updateHashTable(hash, deep){
 	var index = hashToIndex(hash)
@@ -298,12 +313,6 @@ function updateHashTable(hash, deep){
 		deep: deep
 	}
 	visitedHash[index] = record;
-}
-
-function idaUpdateHashTable(hash){
-	var index = hashToIndex(hash);
-	var key = hash & keyMask;
-	visitedHash[index] = key;
 }
 
 function hashToIndex(hash){
