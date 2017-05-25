@@ -206,7 +206,7 @@ function dfsThreshold(threshold, board, step, actionLog, boardHash, minCut){
 		return false;
 	}
 	if(isGameover(board)) return true;
-	var cost = step + evaluation(board);
+	var cost = step + chooseEval(board);
 	if(cost > threshold){
 		if(cost < minCut[0]) minCut[0] = cost;
 		return false;
@@ -250,7 +250,84 @@ function evaluation(board){
 	}
 	return maxMinD;
 }
+function evaluation2(board){
+	var maxMinLeft = 0;
+	var maxMinUp = 0;
+	var maxMinRight = 0;
+	var maxMinDown = 0;
+	for (var i = 0; i < board.length; i++) {
+		if(isColor(board[i], blockColor.box)){
+			boxX = i % 8;
+			boxY = Math.floor(i / 8);
+			var minLeft = 999;
+			var minUp = 999;
+			var minRight = 999;
+			var minDown = 999;
+			for (var j = 0; j < targetPosition.length; j++) {
+				targetX = targetPosition[j] % 8;
+				targetY = Math.floor(targetPosition[j] / 8);
+				distanceX = targetX - boxX;
+				distanceY = targetY - boxY;
+				disLeft = Math.max(0, -distanceX)
+				disUp = Math.max(0, -distanceY)
+				disRight = Math.max(0, distanceX)
+				disDown = Math.max(0, distanceY)
+				if(minLeft > disLeft){
+					minLeft = disLeft;
+				}
+				if(minUp > disUp){
+					minUp = disUp;
+				}
+				if(minRight > disRight){
+					minRight = disRight;
+				}
+				if(minDown > disDown){
+					minDown = disDown;
+				}
+			}
+			if(maxMinLeft < minLeft){
+				maxMinLeft = minLeft;
+			}
+			if(maxMinUp < minUp){
+				maxMinUp = minUp;
+			}
+			if(maxMinRight < minRight){
+				maxMinRight = minRight;
+			}
+			if(maxMinDown < minDown){
+				maxMinDown = minDown;
+			}
+		}
+	}
 
+	var maxMinD = 0;
+	for (var i = 0; i < board.length; i++) {
+		if(isColor(board[i], blockColor.box)){
+			boxX = i % 8;
+			boxY = Math.floor(i / 8);
+			var minD = 999
+			for (var j = 0; j < targetPosition.length; j++) {
+				targetX = targetPosition[j] % 8;
+				targetY = Math.floor(targetPosition[j] / 8);
+				distanceX = targetX - boxX;
+				distanceY = targetY - boxY;
+				disLeft = Math.max(0, -distanceX - maxMinLeft);
+				disUp = Math.max(0, -distanceY - maxMinUp);
+				disRight = Math.max(0, distanceX - maxMinRight);
+				disDown = Math.max(0, distanceY - maxMinDown);
+				distance = disLeft + disUp + disRight + disDown;
+				if(distance < minD){
+					minD = distance
+				}
+			}
+			if(minD > maxMinD){
+				maxMinD = minD
+			}
+		}
+	}
+	return maxMinD + maxMinLeft + maxMinUp + maxMinRight + maxMinDown;
+}
+chooseEval = evaluation2
 
 $("#solute").click(function(){
 	// dfidSolution()
@@ -277,7 +354,7 @@ function idaSolution(){
 	while(true){
 		var actionLog = [];
 		var minCut = [99999];
-		$("#bestMove").text("Threshold: " + threshold);
+		console.log("Threshold: " + threshold);
 		var result = dfsThreshold(threshold, currentBoard, 0, actionLog, boardHash, minCut);
 		threshold = minCut[0];
 		if(result){
