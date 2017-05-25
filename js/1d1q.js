@@ -327,11 +327,100 @@ function evaluation2(board){
 	}
 	return maxMinD + maxMinLeft + maxMinUp + maxMinRight + maxMinDown;
 }
-chooseEval = evaluation2
+
+function oneBoxAstar(boxX, boxY){
+	var queue = new FastPriorityQueue(function (a, b) {
+        return a.c+a.h < b.c+b.h;
+    });
+	var newB = {
+		x: boxX,
+		y: boxY,
+		c: 0,
+		h: oneBoxEvaulation(boxX, boxY)
+	}
+	queue.add(newB);
+	while(!queue.isEmpty()){
+		var curB = queue.poll()
+
+		if(curB.h == 0)	return curB.c;
+
+		x = curB.x;
+		y = curB.y;
+
+		if(x<7 && !(isColor(originBoard[8*y + x+1], blockColor.wall))){
+			newB = {
+				x: x+1,
+				y: y,
+				c: curB.c+1,
+				h: oneBoxEvaulation(x+1, y)
+			}
+			queue.add(newB);
+		}
+		if(x>0 && !(isColor(originBoard[8*y + x-1], blockColor.wall))){
+			newB = {
+				x: x-1,
+				y: y,
+				c: curB.c+1,
+				h: oneBoxEvaulation(x-1, y)
+			}
+			queue.add(newB);
+		}
+		if(y<7 && !(isColor(originBoard[8*(y+1) + x], blockColor.wall))){
+			newB = {
+				x: x,
+				y: y+1,
+				c: curB.c+1,
+				h: oneBoxEvaulation(x, y+1)
+			}
+			queue.add(newB);
+		}
+		if(y>0 && !(isColor(originBoard[8*(y-1) + x], blockColor.wall))){
+			newB = {
+				x: x,
+				y: y-1,
+				c: curB.c+1,
+				h: oneBoxEvaulation(x, y-1)
+			}
+			queue.add(newB);
+		}
+	}
+	return 999; //something wrong
+
+}
+function oneBoxEvaulation(boxX, boxY){
+	var minD = 999;
+	for (var j = 0; j < targetPosition.length; j++) {
+		targetX = targetPosition[j] % 8;
+		targetY = Math.floor(targetPosition[j] / 8);
+		distance = Math.abs(targetX - boxX) + Math.abs(targetY - boxY);
+		if(distance < minD){
+			minD = distance
+		}
+	}
+	return minD;
+}
+function evaluation3(board){
+	var maxh = 0
+	for (var i = 0; i < board.length; i++) {
+		if(isColor(board[i], blockColor.box)){
+			boxX = i % 8;
+			boxY = Math.floor(i / 8);
+			h = oneBoxAstar(boxX, boxY);
+			if(h > maxh){
+				maxh = h;
+			}
+		}
+	}
+	return maxh;
+}
+chooseEval = evaluation2;
 
 $("#solute").click(function(){
+	var t0 = performance.now();
 	// dfidSolution()
 	idaSolution()
+	var t1 = performance.now();
+	console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.")
 })
 
 function dfidSolution(){
