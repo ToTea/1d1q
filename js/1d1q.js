@@ -50,6 +50,14 @@ $("#new").click(function(){
 	$("td").css("background-color", blockColor.no);
 	$("td").css("border-color", "rgb(128, 128, 128)");
 });
+$("#random").click(function(){
+	var p = JSON.parse(problems.randomElement());
+	originBoard = p[0].slice();
+	currentBoard = p[0].slice();
+	targetPosition = p[1].slice();
+
+	refreshScreen()
+})
 $("#start").click(function(){
 	originBoard = []
 	targetPosition = []
@@ -66,6 +74,10 @@ $("#start").click(function(){
 		}
 	}
 });
+$("#save").click(function(){
+	var code = JSON.stringify([originBoard, targetPosition]);
+	$("#boardCode").val(code);
+});
 $("#reset").click(function(){
 	currentBoard = []
 	$("#step").text(0);
@@ -78,7 +90,11 @@ $("#reset").click(function(){
 
 function refreshScreen(){
 	for (var i = 0; i < currentBoard.length; i++) {
-		$(block[i]).css("background-color", currentBoard[i])
+		$(block[i]).css("background-color", currentBoard[i]);
+		$(block[i]).css("border-color", "rgb(128, 128, 128)");
+	}
+	for (var i = 0; i < targetPosition.length; i++) {
+		$(block[targetPosition[i]]).css("border-color", blockColor.target)
 	}
 }
 
